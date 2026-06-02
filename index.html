@@ -1377,6 +1377,32 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   // RTL: swap the arrow directions so each button scrolls the intuitive way.
   next.addEventListener('click',function(){animateBy(-step());});
   prev.addEventListener('click',function(){animateBy(step());});
+  // Lazyload fix: on mobile only ~1 card is visible, and horizontal swiping
+  // doesn't fire a window scroll, so Elementor's lazysizes never unveils the
+  // offscreen cards (their photos stay blank). Force-load every lazy element in
+  // the track once the carousel is reached, independent of lazysizes timing.
+  var unveiled=false;
+  function unveilAll(){
+    if(unveiled)return;unveiled=true;
+    var nodes=track.querySelectorAll('.lazyload');
+    for(var i=0;i<nodes.length;i++){
+      var el=nodes[i],bg=el.getAttribute('data-bg-image');
+      if(bg){el.style.backgroundImage=bg;}
+      if(el.tagName==='IMG'){
+        var src=el.getAttribute('data-src'),ss=el.getAttribute('data-srcset');
+        if(src)el.src=src;if(ss)el.srcset=ss;
+      }
+      el.className=el.className.replace(/\blazyload\b/,'lazyloaded');
+    }
+  }
+  track.addEventListener('scroll',unveilAll,{once:true});
+  track.addEventListener('touchstart',unveilAll,{once:true,passive:true});
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(entries){
+      for(var i=0;i<entries.length;i++){if(entries[i].isIntersecting){unveilAll();io.disconnect();break;}}
+    },{rootMargin:'200px'});
+    io.observe(section);
+  }else{unveilAll();}
 })();
 </script>
 				<footer data-elementor-type="footer" data-elementor-id="4207" class="elementor elementor-4207 elementor-location-footer" data-elementor-post-type="elementor_library">
